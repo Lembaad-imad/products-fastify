@@ -1,0 +1,111 @@
+openapi: 3.0.3
+info:
+  title: Products API
+  version: 1.0.0
+  description: >
+    API for managing products. Clients can push (create) new products
+    (single or in bulk) and retrieve the list of available products.
+
+servers:
+  - url: http://localhost:3000/api
+
+paths:
+  /products:
+    get:
+      summary: List all products
+      operationId: listProducts
+      responses:
+        '200':
+          description: A list of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+
+    post:
+      summary: Push a new product
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewProduct'
+      responses:
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Invalid input
+
+  /products/bulk:
+    post:
+      summary: Push multiple products at once
+      operationId: createProductsBulk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              maxItems: 500
+              items:
+                $ref: '#/components/schemas/NewProduct'
+      responses:
+        '201':
+          description: Products created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '400':
+          description: Invalid input
+
+components:
+  schemas:
+    NewProduct:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - description
+        - price
+      properties:
+        name:
+          type: string
+          example: "Wireless Mouse"
+        description:
+          type: string
+          example: "Ergonomic wireless mouse with USB receiver"
+        price:
+          type: number
+          format: float
+          example: 19.99
+        quantity:
+          type: integer
+          example: 100
+          default: 0
+
+    Product:
+      allOf:
+        - $ref: '#/components/schemas/NewProduct'
+        - type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+              example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
