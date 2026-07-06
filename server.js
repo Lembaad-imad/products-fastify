@@ -7,6 +7,7 @@ const start = async () => {
   try {
     await db.sequelize.authenticate();
     fastify.log.info(" Test Database connection established.");
+    fastify.log.info(" Test Pipeline.");
 
     await db.sequelize.sync();
     fastify.log.info("Database synced.");
