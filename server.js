@@ -6,7 +6,7 @@ const fastify = buildApp();
 const start = async () => {
   try {
     await db.sequelize.authenticate();
-    fastify.log.info("Database connection established.");
+    fastify.log.info(" Test Database connection established.");
 
     await db.sequelize.sync();
     fastify.log.info("Database synced.");
