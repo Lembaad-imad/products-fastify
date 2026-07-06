@@ -68,6 +68,21 @@ paths:
                   $ref: '#/components/schemas/Product'
         '400':
           description: Invalid input
+  /ping:
+    get:
+      summary: Health check
+      operationId: ping
+      responses:
+        '200':
+          description: Pong
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "pong"          
 
 components:
   schemas:

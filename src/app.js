@@ -14,7 +14,7 @@ function buildApp(opts = {}) {
     ...opts,
   });
 fastify.addHook('onRequest', async (request, reply) => {
-  if (request.routeOptions.url === '/api/products') {
+  if (request.routeOptions.url === '/api/ping') {
     reply.send({ message: 'pipeline work' });
   }
 });
