@@ -20,7 +20,7 @@ fastify.addHook('onRequest', async (request, reply) => {
     reply.send({ message: 'pipeline work' });
   }
 });
-fastify.register(jwtPlugin);
+// fastify.register(jwtPlugin);
 const serviceHandlers = {
   ...productController,
   ...authController,

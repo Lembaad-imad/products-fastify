@@ -22,20 +22,20 @@ export default {
     try {
       const { email, password } = req.body
       const user = await authService.loginUser({ email, password })
-      const accessToken = await reply.jwtSign(
-      { id: user.id, email: user.email },
-      { expiresIn: '15m' }
-    );
+    //   const accessToken = await reply.jwtSign(
+    //   { id: user.id, email: user.email },
+    //   { expiresIn: '15m' }
+    // );
 
-    const refreshToken = await reply.jwtSign(
-      { id: user.id, email: user.email },
-      { expiresIn: '7d' }
-    );
+    // const refreshToken = await reply.jwtSign(
+    //   { id: user.id, email: user.email },
+    //   { expiresIn: '7d' }
+    // );
 
       return reply.send({
         message: 'Connexion reussie',
-        accessToken,
-      refreshToken,
+        // accessToken,
+    //   refreshToken,
         user: {
           name: user.name,
           email: user.email
