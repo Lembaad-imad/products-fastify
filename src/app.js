@@ -1,6 +1,8 @@
 import Fastify from "fastify";
 import openapiGlue from "fastify-openapi-glue";
 import productController from "./controllers/product.controller.js";
+import authController from './controllers/auth.controller.js'
+import jwtPlugin from './plugin/jwt.plugin.js';
 
 function buildApp(opts = {}) {
   const fastify = Fastify({
@@ -18,11 +20,16 @@ fastify.addHook('onRequest', async (request, reply) => {
     reply.send({ message: 'pipeline work' });
   }
 });
+fastify.register(jwtPlugin);
+const serviceHandlers = {
+  ...productController,
+  ...authController,
+};
 
 
   fastify.register(openapiGlue, {
     specification: "./openapi.yaml",
-    serviceHandlers: productController,
+    serviceHandlers: serviceHandlers,
     prefix: "/api", 
   });
 

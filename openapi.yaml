@@ -5,9 +5,13 @@ info:
   description: >
     API for managing products. Clients can push (create) new products
     (single or in bulk) and retrieve the list of available products.
+    Includes user registration, login, and JWT-based authentication.
 
 servers:
   - url: http://localhost:3000/api
+
+security:
+  - bearerAuth: []
 
 paths:
   /products:
@@ -23,6 +27,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Product'
+        '401':
+          description: Missing or invalid token
 
     post:
       summary: Push a new product
@@ -42,6 +48,8 @@ paths:
                 $ref: '#/components/schemas/Product'
         '400':
           description: Invalid input
+        '401':
+          description: Missing or invalid token
 
   /products/bulk:
     post:
@@ -68,10 +76,45 @@ paths:
                   $ref: '#/components/schemas/Product'
         '400':
           description: Invalid input
+        '401':
+          description: Missing or invalid token
+
+  /products/{id}:
+    patch:
+      summary: Update an existing product
+      operationId: updateProduct
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProduct'
+      responses:
+        '200':
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Invalid input
+        '401':
+          description: Missing or invalid token
+        '404':
+          description: Product not found
+
   /ping:
     get:
       summary: Health check
       operationId: ping
+      security: []
       responses:
         '200':
           description: Pong
@@ -82,9 +125,59 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "pong"          
+                    example: "pong"
+
+  /register:
+    post:
+      summary: Register a new user
+      operationId: register
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewUser'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+        '409':
+          description: Email already registered
+
+  /login:
+    post:
+      summary: Log in a user
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     NewProduct:
       type: object
@@ -109,6 +202,25 @@ components:
           example: 100
           default: 0
 
+    UpdateProduct:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          example: "Wireless Mouse"
+        description:
+          type: string
+          example: "Ergonomic wireless mouse with USB receiver"
+        price:
+          type: number
+          format: float
+          example: 24.99
+        quantity:
+          type: integer
+          example: 80
+
     Product:
       allOf:
         - $ref: '#/components/schemas/NewProduct'
@@ -124,3 +236,70 @@ components:
             updatedAt:
               type: string
               format: date-time
+
+    NewUser:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          example: "Jane Doe"
+        email:
+          type: string
+          format: email
+          example: "jane@example.com"
+        password:
+          type: string
+          format: password
+          
+          example: "Str0ngPassw0rd!"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+        name:
+          type: string
+          example: "Jane Doe"
+        email:
+          type: string
+          format: email
+          example: "jane@example.com"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "jane@example.com"
+        password:
+          type: string
+          format: password
+          example: "Str0ngPassw0rd!"
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT access token
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        user:
+          $ref: '#/components/schemas/User'

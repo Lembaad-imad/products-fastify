@@ -1,5 +1,5 @@
-import db from "../models/index.js";
-const { Product } = db;
+import models from "../models/index.js";
+const { Product } = models;
 
 export async function getAllProducts() {
   return Product.findAll();
