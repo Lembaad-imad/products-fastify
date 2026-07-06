@@ -15,6 +15,7 @@ function buildApp(opts = {}) {
   });
 fastify.addHook('onRequest', async (request, reply) => {
   if (request.routeOptions.url === '/products') {
+    console.log('pipeline work ')
   }
 });
 
