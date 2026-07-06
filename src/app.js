@@ -13,6 +13,11 @@ function buildApp(opts = {}) {
     },
     ...opts,
   });
+fastify.addHook('onRequest', async (request, reply) => {
+  if (request.routeOptions.url === '/products') {
+  }
+});
+
 
   fastify.register(openapiGlue, {
     specification: "./openapi.yaml",
