@@ -22,6 +22,7 @@ function buildApp(opts = {}) {
     ...productController,
     ...authController,
   };
+fastify.use({cros:({origin:'*'})})
 
   fastify.register(openapiGlue, {
     specification: "./openapi.yaml",
