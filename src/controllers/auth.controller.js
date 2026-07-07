@@ -1,48 +1,45 @@
-import * as authService from '../service/user.service.js'
+import jwt from 'jsonwebtoken';
+import { env } from '../config/env.js';
+import * as authService from '../service/user.service.js';
 
 export default {
-
   async register(req, reply) {
     try {
-      const user = await authService.registerUser(req.body)
+      const user = await authService.registerUser(req.body);
       return reply.code(201).send({
         message: 'Compte cree avec succes',
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email
-        }
-      })
+        user: { id: user.id, name: user.name, email: user.email },
+      });
     } catch (error) {
-      return reply.code(error.statusCode || 400).send({ error: error.message })
+      return reply.code(error.statusCode || 400).send({ error: error.message });
     }
   },
 
   async login(req, reply) {
     try {
-      const { email, password } = req.body
-      const user = await authService.loginUser({ email, password })
-    //   const accessToken = await reply.jwtSign(
-    //   { id: user.id, email: user.email },
-    //   { expiresIn: '15m' }
-    // );
+      const { email, password } = req.body;
+      const user = await authService.loginUser({ email, password });
 
-    // const refreshToken = await reply.jwtSign(
-    //   { id: user.id, email: user.email },
-    //   { expiresIn: '7d' }
-    // );
+      const accessToken = jwt.sign(
+        { id: user.id, email: user.email },
+        env.JWT_SECRET,
+        { expiresIn: '15m' }
+      );
+
+      const refreshToken = jwt.sign(
+        { id: user.id, email: user.email },
+        env.JWT_REFRESH_SECRET,
+        { expiresIn: '7d' }
+      );
 
       return reply.send({
         message: 'Connexion reussie',
-        // accessToken,
-    //   refreshToken,
-        user: {
-          name: user.name,
-          email: user.email
-        }
-      })
+        accessToken,
+        refreshToken,
+        user: { name: user.name, email: user.email },
+      });
     } catch (error) {
-      return reply.code(error.statusCode || 401).send({ error: error.message })
+      return reply.code(error.statusCode || 401).send({ error: error.message });
     }
-  }
-}
+  },
+};

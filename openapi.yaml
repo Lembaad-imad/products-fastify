@@ -18,6 +18,7 @@ paths:
     get:
       summary: List all products
       operationId: listProducts
+      security: []
       responses:
         '200':
           description: A list of products
@@ -27,8 +28,6 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Product'
-        '401':
-          description: Missing or invalid token
 
     post:
       summary: Push a new product
@@ -144,11 +143,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/RegisterResponse'
         '400':
           description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '409':
           description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /login:
     post:
@@ -170,6 +177,10 @@ paths:
                 $ref: '#/components/schemas/LoginResponse'
         '401':
           description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   securitySchemes:
@@ -236,6 +247,19 @@ components:
             updatedAt:
               type: string
               format: date-time
+            User:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                  example: "Jane Doe"
+                email:
+                  type: string
+                  format: email
+                  example: "jane@example.com"
 
     NewUser:
       type: object
@@ -254,7 +278,6 @@ components:
         password:
           type: string
           format: password
-          
           example: "Str0ngPassw0rd!"
 
     User:
@@ -278,6 +301,27 @@ components:
           type: string
           format: date-time
 
+    RegisterResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Compte cree avec succes"
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+              example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+            name:
+              type: string
+              example: "Jane Doe"
+            email:
+              type: string
+              format: email
+              example: "jane@example.com"
+
     LoginRequest:
       type: object
       additionalProperties: false
@@ -297,9 +341,31 @@ components:
     LoginResponse:
       type: object
       properties:
-        token:
+        message:
           type: string
-          description: JWT access token
+          example: "Connexion reussie"
+        accessToken:
+          type: string
+          description: JWT access token (short-lived)
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          description: JWT refresh token (long-lived)
           example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         user:
-          $ref: '#/components/schemas/User'
+          type: object
+          properties:
+            name:
+              type: string
+              example: "Jane Doe"
+            email:
+              type: string
+              format: email
+              example: "jane@example.com"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "email ou mot de passe incorrect"

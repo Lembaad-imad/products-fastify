@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import openapiGlue from "fastify-openapi-glue";
 import productController from "./controllers/product.controller.js";
-import authController from './controllers/auth.controller.js'
+import authController from './controllers/auth.controller.js';
 import jwtPlugin from './plugin/jwt.plugin.js';
 
 function buildApp(opts = {}) {
@@ -15,22 +15,23 @@ function buildApp(opts = {}) {
     },
     ...opts,
   });
-fastify.addHook('onRequest', async (request, reply) => {
-  if (request.routeOptions.url === '/api/ping') {
-    reply.send({ message: 'pipeline work' });
-  }
-});
-// fastify.register(jwtPlugin);
-const serviceHandlers = {
-  ...productController,
-  ...authController,
-};
 
+  fastify.register(jwtPlugin);
+
+  const serviceHandlers = {
+    ...productController,
+    ...authController,
+  };
 
   fastify.register(openapiGlue, {
     specification: "./openapi.yaml",
     serviceHandlers: serviceHandlers,
-    prefix: "/api", 
+    securityHandlers:{
+      bearerAuth: async (req,reply ,params) =>{
+        await req.server.authenticate(req,reply)
+      }
+    },
+    prefix: "/api",
   });
 
   return fastify;

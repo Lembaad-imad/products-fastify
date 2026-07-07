@@ -43,7 +43,7 @@ export default function defineUser(Sequelize,DataTypes){
         }
     });
       User.associate = (models)=>{
-        User.hasMany(models.Product, {foreignKey:'userId', onDelete:'CASCADE'})
+        User.hasMany(models.Product, {foreignKey:'user_id', onDelete:'CASCADE'})
       }
     return User
 }

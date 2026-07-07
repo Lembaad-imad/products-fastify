@@ -27,7 +27,7 @@ export default function defineProduct(Sequelize,DataTypes){
         tableName: 'products'
     });
     Product.associate=(models)=>{
-        Product.belongsTo(models.User,{foreignKey:'userId',onDelete:'CASCADE'})
+        Product.belongsTo(models.User,{foreignKey:'user_id',onDelete:'CASCADE'})
     }
     return Product;
 }
