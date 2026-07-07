@@ -1,4 +1,4 @@
-import * as productService from "../service/productService.js";
+import * as productService from "../service/model.service.js";
 
 export default {
   async listProducts(request, reply) {
