@@ -64,6 +64,7 @@ services:
       - /usr/bin/docker:/usr/bin/docker
       - /usr/libexec/docker/cli-plugins:/usr/libexec/docker/cli-plugins
       - /root/products-fastify:/deploy
+      - /root/orbit-front:/root/orbit-front 
     networks:
       - app-network
 
