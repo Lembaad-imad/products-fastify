@@ -9,7 +9,7 @@ const start = async () => {
     fastify.log.info(" Test Database connection established.");
     fastify.log.info(" Test Pipeline.");
 
-    await db.sequelize.sync();
+    await db.sequelize.sync({ alter: true });
     fastify.log.info("Database synced.");
 
     await fastify.listen({ port: 3000, host: "0.0.0.0" });
