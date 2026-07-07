@@ -1,11 +1,14 @@
 openapi: 3.0.3
 info:
-  title: Products API
-  version: 1.0.0
+  title: Woliz Products API
+  version: 2.0.0
   description: >
-    API for managing products. Clients can push (create) new products
-    (single or in bulk) and retrieve the list of available products.
-    Includes user registration, login, and JWT-based authentication.
+    API for managing the Woliz product catalog. The catalog uses a temporal
+    model: a product keeps a stable identity, but its characteristics
+    (price, format, packaging, SKU) evolve over time via variants.
+    Products can belong to the global catalog (nanostoreId = null) or to a
+    specific nanostore (private product). Includes user registration,
+    login, and JWT-based authentication.
 
 servers:
   - url: http://localhost:3000/api
@@ -19,6 +22,21 @@ paths:
       summary: List all products
       operationId: listProducts
       security: []
+      parameters:
+        - name: nanostoreId
+          in: query
+          description: >
+            Filter by nanostore. Omit or leave empty to list the global
+            catalog (products with nanostoreId = null).
+          required: false
+          schema:
+            type: integer
+        - name: locale
+          in: query
+          description: Locale used to resolve product translations in the response
+          required: false
+          schema:
+            $ref: '#/components/schemas/Locale'
       responses:
         '200':
           description: A list of products
@@ -30,7 +48,11 @@ paths:
                   $ref: '#/components/schemas/Product'
 
     post:
-      summary: Push a new product
+      summary: Create a new product
+      description: >
+        Creates a product along with its required translations (at least
+        one in ar-ma) and its first variant. Writes a sku_history entry
+        with changeType = creation.
       operationId: createProduct
       requestBody:
         required: true
@@ -46,9 +68,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/Product'
         '400':
-          description: Invalid input
+          description: Invalid input (e.g. missing ar-ma translation)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Missing or invalid token
+        '409':
+          description: SKU or barcode conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /products/bulk:
     post:
@@ -75,20 +107,59 @@ paths:
                   $ref: '#/components/schemas/Product'
         '400':
           description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Missing or invalid token
 
   /products/{id}:
+    get:
+      summary: Get a product by id
+      operationId: getProduct
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1000
+        - name: locale
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Locale'
+      responses:
+        '200':
+          description: Product found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     patch:
-      summary: Update an existing product
+      summary: Update an existing product's stable fields
+      description: >
+        Updates fields on the products table itself (brand, category,
+        image, status...). To change price, size or packaging, use the
+        variants endpoint instead, since those changes create a new
+        variant rather than overwriting the existing one.
       operationId: updateProduct
       parameters:
         - name: id
           in: path
           required: true
           schema:
-            type: string
-            format: uuid
+            type: integer
+            example: 1000
       requestBody:
         required: true
         content:
@@ -104,8 +175,208 @@ paths:
                 $ref: '#/components/schemas/Product'
         '400':
           description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Missing or invalid token
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /products/{id}/translations:
+    get:
+      summary: List translations for a product
+      operationId: listProductTranslations
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of translations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductTranslation'
+        '404':
+          description: Product not found
+
+    put:
+      summary: Create or update a translation for a locale
+      description: Upserts on the (productId, locale) unique pair.
+      operationId: upsertProductTranslation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewProductTranslation'
+      responses:
+        '200':
+          description: Translation upserted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductTranslation'
+        '400':
+          description: Invalid input
+        '401':
+          description: Missing or invalid token
+        '404':
+          description: Product not found
+
+  /products/{id}/variants:
+    get:
+      summary: List all variants of a product (history included)
+      operationId: listProductVariants
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: activeOnly
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: If true, return only the variant currently valid
+      responses:
+        '200':
+          description: List of variants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductVariant'
+        '404':
+          description: Product not found
+
+    post:
+      summary: Create a new variant (price, size or packaging change)
+      description: >
+        Creates a new variant for the product. If a variant with the same
+        price/size/packaging combination already exists, it is reactivated
+        instead of duplicated. Otherwise, the currently active variant is
+        expired (status = expired, validUntil = now) and a new one is
+        created. Writes a sku_history entry accordingly.
+      operationId: createProductVariant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewProductVariant'
+      responses:
+        '201':
+          description: Variant created or reactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductVariant'
+        '400':
+          description: Invalid input
+        '401':
+          description: Missing or invalid token
+        '404':
+          description: Product not found
+
+  /variants/{variantId}/translations:
+    get:
+      summary: List translations for a variant
+      operationId: listVariantTranslations
+      security: []
+      parameters:
+        - name: variantId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of translations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductVariantTranslation'
+        '404':
+          description: Variant not found
+
+    put:
+      summary: Create or update a translation for a variant locale
+      operationId: upsertVariantTranslation
+      parameters:
+        - name: variantId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewProductVariantTranslation'
+      responses:
+        '200':
+          description: Translation upserted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductVariantTranslation'
+        '400':
+          description: Invalid input
+        '401':
+          description: Missing or invalid token
+        '404':
+          description: Variant not found
+
+  /products/{id}/history:
+    get:
+      summary: Get the sku_history trail for a product (and its variants)
+      operationId: getProductHistory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of history entries, most recent first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SkuHistoryEntry'
         '404':
           description: Product not found
 
@@ -190,76 +461,395 @@ components:
       bearerFormat: JWT
 
   schemas:
+    Locale:
+      type: string
+      enum: [en, fr, ar, ar-ma]
+
+    CreatedByType:
+      type: string
+      enum: [admin, user_brand]
+
+    VariantStatus:
+      type: string
+      enum: [active, scheduled, expired, archived]
+
+    ChangeType:
+      type: string
+      enum:
+        - creation
+        - price_change
+        - size_change
+        - packaging_change
+        - reactivation
+        - expiration
+        - bulk_import
+        - manual_update
+        - scheduled_activation
+
+    ChangeSource:
+      type: string
+      enum: [manual, bulk_import, scheduled_job, api, brand_portal]
+
+    # ---- Product ----
+
     NewProduct:
       type: object
       additionalProperties: false
       required:
-        - name
-        - description
+        - sku
+        - categoryId
         - price
+        - translations
+        - initialVariant
       properties:
-        name:
+        sku:
           type: string
-          example: "Wireless Mouse"
-        description:
+          maxLength: 50
+          example: "WOL-1000"
+        barcode:
           type: string
-          example: "Ergonomic wireless mouse with USB receiver"
+          nullable: true
+          example: "6111234567890"
+        unit:
+          type: integer
+          nullable: true
+          description: Units per pack, e.g. 6 for a pack of 6
+          example: 6
         price:
           type: number
           format: float
           example: 19.99
-        quantity:
+        brandId:
           type: integer
-          example: 100
+          nullable: true
+          description: Nullable since June 2026 for products without a brand
+        categoryId:
+          type: integer
+          description: Required
+        type:
+          type: string
+          nullable: true
+        image:
+          type: string
+          nullable: true
+          description: Legacy R2 path field
+        imageMediaId:
+          type: integer
+          nullable: true
+        images:
+          type: array
+          items:
+            type: string
+          nullable: true
+        stock:
+          type: integer
           default: 0
+        minStock:
+          type: integer
+          default: 0
+        status:
+          type: boolean
+          default: true
+        nanostoreId:
+          type: integer
+          nullable: true
+          description: >
+            Null = global catalog product managed by Woliz, visible to all
+            nanostores. Set = private product owned by one nanostore.
+        translations:
+          type: array
+          minItems: 1
+          description: At least one translation in ar-ma is required.
+          items:
+            $ref: '#/components/schemas/NewProductTranslation'
+        initialVariant:
+          $ref: '#/components/schemas/NewProductVariant'
 
     UpdateProduct:
       type: object
       additionalProperties: false
       minProperties: 1
+      description: >
+        Only stable product fields can be updated here. Price, size and
+        packaging changes must go through /products/{id}/variants.
       properties:
-        name:
+        brandId:
+          type: integer
+          nullable: true
+        categoryId:
+          type: integer
+        type:
           type: string
-          example: "Wireless Mouse"
-        description:
+          nullable: true
+        image:
           type: string
-          example: "Ergonomic wireless mouse with USB receiver"
+          nullable: true
+        imageMediaId:
+          type: integer
+          nullable: true
+        images:
+          type: array
+          items:
+            type: string
+          nullable: true
+        minStock:
+          type: integer
+        status:
+          type: boolean
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1000
+        sku:
+          type: string
+          example: "WOL-1000"
+        barcode:
+          type: string
+          nullable: true
+          example: "6111234567890"
+        unit:
+          type: integer
+          nullable: true
         price:
           type: number
           format: float
-          example: 24.99
-        quantity:
+        unitPrice:
+          type: number
+          format: float
+          nullable: true
+        brandId:
           type: integer
-          example: 80
+          nullable: true
+        categoryId:
+          type: integer
+        type:
+          type: string
+          nullable: true
+        image:
+          type: string
+          nullable: true
+        imageMediaId:
+          type: integer
+          nullable: true
+        images:
+          type: array
+          items:
+            type: string
+          nullable: true
+        stock:
+          type: integer
+        minStock:
+          type: integer
+        status:
+          type: boolean
+        createdBy:
+          type: integer
+          nullable: true
+        createdByType:
+          $ref: '#/components/schemas/CreatedByType'
+        nanostoreId:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        translations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductTranslation'
+        activeVariant:
+          $ref: '#/components/schemas/ProductVariant'
+        creator:
+          $ref: '#/components/schemas/User'
 
-    Product:
+    # ---- Product translations ----
+
+    NewProductTranslation:
+      type: object
+      additionalProperties: false
+      required:
+        - locale
+        - name
+      properties:
+        locale:
+          $ref: '#/components/schemas/Locale'
+        name:
+          type: string
+          maxLength: 255
+          example: "Souris sans fil"
+        description:
+          type: string
+          nullable: true
+        size:
+          type: string
+          nullable: true
+          example: "500ml"
+        packaging:
+          type: string
+          nullable: true
+          example: "pack de 6"
+
+    ProductTranslation:
       allOf:
-        - $ref: '#/components/schemas/NewProduct'
+        - $ref: '#/components/schemas/NewProductTranslation'
         - type: object
           properties:
             id:
-              type: string
-              format: uuid
-              example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+              type: integer
+            productId:
+              type: integer
+
+    # ---- Product variants ----
+
+    NewProductVariant:
+      type: object
+      additionalProperties: false
+      required:
+        - sku
+        - price
+        - validFrom
+      properties:
+        sku:
+          type: string
+          maxLength: 100
+          example: "WOL-1000-V1"
+        price:
+          type: number
+          format: float
+          example: 19.99
+        costPrice:
+          type: number
+          format: float
+          nullable: true
+        size:
+          type: string
+          nullable: true
+          example: "500ml"
+        packaging:
+          type: string
+          nullable: true
+          example: "bouteille"
+        stock:
+          type: integer
+          default: 0
+        minStock:
+          type: integer
+          nullable: true
+        maxStock:
+          type: integer
+          nullable: true
+        validFrom:
+          type: string
+          format: date
+        validUntil:
+          type: string
+          format: date
+          nullable: true
+          description: Null means unlimited
+        metadata:
+          type: object
+          additionalProperties: true
+          nullable: true
+        translations:
+          type: array
+          items:
+            $ref: '#/components/schemas/NewProductVariantTranslation'
+
+    ProductVariant:
+      allOf:
+        - $ref: '#/components/schemas/NewProductVariant'
+        - type: object
+          properties:
+            id:
+              type: integer
+              example: 5000
+            productId:
+              type: integer
+            isActive:
+              type: boolean
+            status:
+              $ref: '#/components/schemas/VariantStatus'
+            createdBy:
+              type: integer
+              nullable: true
+            updatedBy:
+              type: integer
+              nullable: true
             createdAt:
               type: string
               format: date-time
             updatedAt:
               type: string
               format: date-time
-            User:
-              type: object
-              properties:
-                id:
-                  type: string
-                  format: uuid
-                name:
-                  type: string
-                  example: "Jane Doe"
-                email:
-                  type: string
-                  format: email
-                  example: "jane@example.com"
+
+    # ---- Product variant translations ----
+
+    NewProductVariantTranslation:
+      type: object
+      additionalProperties: false
+      required:
+        - locale
+        - name
+      properties:
+        locale:
+          $ref: '#/components/schemas/Locale'
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+        packagingLabel:
+          type: string
+          nullable: true
+
+    ProductVariantTranslation:
+      allOf:
+        - $ref: '#/components/schemas/NewProductVariantTranslation'
+        - type: object
+          properties:
+            id:
+              type: integer
+            variantId:
+              type: integer
+
+    # ---- SKU history ----
+
+    SkuHistoryEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        productId:
+          type: integer
+          nullable: true
+        variantId:
+          type: integer
+          nullable: true
+        sku:
+          type: string
+        changeType:
+          $ref: '#/components/schemas/ChangeType'
+        changeData:
+          type: object
+          additionalProperties: true
+          nullable: true
+        changedBy:
+          type: integer
+          nullable: true
+        changeSource:
+          $ref: '#/components/schemas/ChangeSource'
+        changedAt:
+          type: string
+          format: date-time
+
+    # ---- Users / auth ----
 
     NewUser:
       type: object
@@ -284,9 +874,8 @@ components:
       type: object
       properties:
         id:
-          type: string
-          format: uuid
-          example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+          type: integer
+          example: 1
         name:
           type: string
           example: "Jane Doe"
@@ -308,19 +897,7 @@ components:
           type: string
           example: "Compte cree avec succes"
         user:
-          type: object
-          properties:
-            id:
-              type: string
-              format: uuid
-              example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
-            name:
-              type: string
-              example: "Jane Doe"
-            email:
-              type: string
-              format: email
-              example: "jane@example.com"
+          $ref: '#/components/schemas/User'
 
     LoginRequest:
       type: object
@@ -353,15 +930,7 @@ components:
           description: JWT refresh token (long-lived)
           example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         user:
-          type: object
-          properties:
-            name:
-              type: string
-              example: "Jane Doe"
-            email:
-              type: string
-              format: email
-              example: "jane@example.com"
+          $ref: '#/components/schemas/User'
 
     ErrorResponse:
       type: object
