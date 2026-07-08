@@ -15,24 +15,24 @@ export default {
     return reply.code(200).send(product);
   },
 
-  async createProduct(request, reply) {
-    const { productData, translations } = request.body;
+async createProduct(request, reply) {
+  const { translations, initialVariant, ...productData } = request.body;
 
-    try {
-      const product = await productService.createProduct({
-        productData,
-        translations,
-        actor: {
-          createdBy: request.user.id,
-          createdByType: request.user.type ?? "admin", // à adapter selon ton modèle User
-          changeSource: "manual",
-        },
-      });
-      return reply.code(201).send(product);
-    } catch (err) {
-      return reply.code(400).send({ error: err.message });
-    }
-  },
+  try {
+    const product = await productService.createProduct({
+      productData,
+      translations,
+      actor: {
+        createdBy: request.user.id,
+        createdByType: request.user?.type ?? "admin",
+        changeSource: "manual",
+      },
+    });
+    return reply.code(201).send(product);
+  } catch (err) {
+    return reply.code(400).send({ error: err.message });
+  }
+},
 
   async createProductsBulk(request, reply) {
     const items = request.body; // tableau de { productData, translations }

@@ -1,49 +1,40 @@
-import { sequelize } from "../config/database.js"
-import bcrypt from 'bcrypt'
-export default function defineUser(Sequelize,DataTypes){
-    const User = sequelize.define("User",{
-       id:{
-        type:DataTypes.UUID,
-        defaultValue:DataTypes.UUIDV4,
-        primaryKey : true,
-       },
-       name:{
-            type:DataTypes.STRING,
-            allowNull:false,
-       },
-        email:{
-            type:DataTypes.STRING,
-            allowNull:false,
-            unique:true,
-            validate:{
-                isEmail:true,
-            },
+import { sequelize } from "../config/database.js";
+
+export default function defineUser(sequelize, DataTypes) {
+    const User = sequelize.define('User', {
+        id: {
+            type: DataTypes.INTEGER,
+            autoIncrement: true,
+            primaryKey: true
         },
-        password:{
-            type:DataTypes.STRING,
-            allowNull:false,
+        name: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        email: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            unique: true
+        },
+        password: {
+            type: DataTypes.STRING,
+            allowNull: false
         }
-    },{
-        tableName:'user',
-        defaultScope:{
-            attributes:{exclude :['password']}
+    }, {
+        tableName: 'user',
+        defaultScope: {
+            attributes: { exclude: ['password'] }
         },
-        scopes:{
-            withPassword:{attributes:{}}
-        },
-        hooks:{
-            beforeCreate : async(user) =>{
-                user.password = await bcrypt.hash(user.password,10)
-            },
-            beforeUpdate : async (user)=>{
-                if(user.changed('password')){
-                    user.password = await bcrypt.hash(user.password,10)
-                }
+        scopes: {
+            withPassword: {
+                attributes: { include: ['password'] }
             }
         }
     });
-      User.associate = (models)=>{
-        User.hasMany(models.Product, {foreignKey:'user_id', onDelete:'CASCADE'})
-      }
-    return User
+
+    User.associate = (models) => {
+        User.hasMany(models.Product, { foreignKey: 'createdBy', as: 'createdProducts' });
+    };
+
+    return User;
 }

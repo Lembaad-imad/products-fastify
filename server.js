@@ -1,6 +1,6 @@
 import buildApp from "./src/app.js";
 import db from "./src/models/index.js";
-
+import './src/service/scheduler.js';
 const fastify = buildApp();
 
 const start = async () => {
@@ -9,7 +9,7 @@ const start = async () => {
     fastify.log.info(" Test Database connection established.");
     fastify.log.info(" Test Pipeline.");
 
-    await db.sequelize.sync({ alter: true });
+    await db.sequelize.sync({ force: true });
     fastify.log.info("Database synced.");
 
     await fastify.listen({ port: 3000, host: "0.0.0.0" });

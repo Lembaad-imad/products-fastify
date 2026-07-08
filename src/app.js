@@ -4,7 +4,7 @@ import openapiGlue from "fastify-openapi-glue";
 import productController from "./controllers/product.controller.js";
 import authController from './controllers/auth.controller.js';
 import jwtPlugin from './plugin/jwt.plugin.js';
-
+import logsRoutes from './routes/logs.routes.js';
 function buildApp(opts = {}) {
   const fastify = Fastify({
     logger: true,
@@ -22,7 +22,7 @@ function buildApp(opts = {}) {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
-
+  fastify.register(logsRoutes, { prefix: '/api' }); 
   fastify.register(jwtPlugin);
 
   const serviceHandlers = {

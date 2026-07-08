@@ -13,15 +13,15 @@ const ProductVariant = defineProductVariant(sequelize, DataTypes);
 const ProductTranslation = defineProductTranslation(sequelize, DataTypes);
 const ProductVariantTranslation = defineProductVariantTranslation(sequelize, DataTypes);
 const SkuHistory = defineSkuHistory(sequelize, DataTypes);
-const User = defineUser(sequelize, DataTypes);
+const User = defineUser(sequelize,DataTypes);
 
 const models = {
-  User,
   Product,
   ProductVariant,
   ProductTranslation,
   ProductVariantTranslation,
   SkuHistory,
+  User,
   sequelize
 };
 

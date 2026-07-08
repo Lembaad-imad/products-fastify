@@ -1,19 +1,23 @@
 import { comparePassword } from "../../utils/hash.js";
+import { hashPassword } from "../../utils/hash.js";
 import models from "../models/index.js";
 
 const {User} = models;
 
-export async function registerUser({name,email,password}){
-    const existing = await User.findOne({where:{email}})
-    if(existing){
-        const error = new Error('un compte existe deja avec cet email')
-        error.statusCode= 409;
-        throw error
+export async function registerUser({ name, email, password }) {
+    const existing = await User.findOne({ where: { email } });
+    if (existing) {
+        const error = new Error('un compte existe deja avec cet email');
+        error.statusCode = 409;
+        throw error;
     }
+
+    const hashedPassword = await hashPassword(password);
+
     const user = await User.create({
         name,
         email,
-        password
+        password: hashedPassword
     });
     return user;
 }

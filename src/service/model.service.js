@@ -5,9 +5,7 @@ export async function getAllProducts({ nanostoreId = null } = {}) {
   return Product.findAll({
     where: { nanostoreId },
     include: [
-      { model: Brand },
-      { model: Category },
-      { model: Media },
+      
       { model: ProductTranslation },
       { model: User, as: 'creator', attributes: ['id', 'name', 'email'] },
     ],
@@ -17,9 +15,7 @@ export async function getAllProducts({ nanostoreId = null } = {}) {
 export async function getProductById(id) {
   return Product.findByPk(id, {
     include: [
-      { model: Brand },
-      { model: Category },
-      { model: Media },
+    
       { model: ProductTranslation },
       { model: User, as: 'creator', attributes: ['id', 'name', 'email'] },
     ],
@@ -61,6 +57,8 @@ export async function createProduct({ productData, translations, actor }) {
 
     return product;
   });
+
+}
   export async function createProductsBulk(items, actor) {
   return sequelize.transaction(async (t) => {
     const results = [];
@@ -77,5 +75,4 @@ export async function createProduct({ productData, translations, actor }) {
     }
     return results;
   });
-}
 }
