@@ -11,26 +11,29 @@ export default async function logsRoutes(fastify, opts) {
     return getAllProviderStatuses(); 
   });
 
-  fastify.get('/logs/stream', async (request, reply) => {
-    reply.raw.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-    });
+fastify.get('/logs/stream', (request, reply) => {
+  reply.hijack(); // tell Fastify to back off — we're driving the raw response
 
-    pollLogger.getRecent(50).forEach(entry => {
-      reply.raw.write(`data: ${JSON.stringify(entry)}\n\n`);
-    });
-
-    const unsubscribe = pollLogger.onLog((entry) => {
-      reply.raw.write(`data: ${JSON.stringify(entry)}\n\n`);
-    });
-
-    request.raw.on('close', () => {
-      unsubscribe();
-      reply.raw.end();
-    });
-
-    return reply;
+  reply.raw.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': request.headers.origin || '*',
   });
+
+  pollLogger.getRecent(50).forEach(entry => {
+    reply.raw.write(`data: ${JSON.stringify(entry)}\n\n`);
+  });
+
+  const unsubscribe = pollLogger.onLog((entry) => {
+    reply.raw.write(`data: ${JSON.stringify(entry)}\n\n`);
+  });
+
+  request.raw.on('close', () => {
+    unsubscribe();
+    reply.raw.end();
+  });
+
+  // no return needed — hijack means Fastify won't await/send anything
+});
 }

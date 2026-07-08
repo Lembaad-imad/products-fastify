@@ -23,6 +23,7 @@ function buildApp(opts = {}) {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
   fastify.register(logsRoutes, { prefix: '/api' }); 
+  
   fastify.register(jwtPlugin);
 
   const serviceHandlers = {
