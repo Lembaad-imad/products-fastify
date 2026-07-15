@@ -1,9 +1,9 @@
-const statusMap = new Map(); 
+const statusMap = new Map();
 
 export function updateProviderStatus(providerId, patch) {
   const current = statusMap.get(providerId) || {
     id: providerId,
-    status: 'idle', // 'idle' | 'ok' | 'error'
+    status: 'idle',
     totalProducts: 0,
     lastAdded: 0,
     lastChanged: 0,
@@ -15,6 +15,11 @@ export function updateProviderStatus(providerId, patch) {
   statusMap.set(providerId, { ...current, ...patch, lastPolledAt: new Date().toISOString() });
 }
 
-export function getAllProviderStatuses() {
-  return Array.from(statusMap.values());
+export function getAllProviderStatuses(activeProviderIds = null) {
+  const all = Array.from(statusMap.values());
+
+  if (!activeProviderIds) return all;
+
+  const activeSet = new Set(activeProviderIds.map(id => id.toUpperCase()));
+  return all.filter(p => activeSet.has(p.id.toUpperCase()));
 }

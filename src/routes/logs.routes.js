@@ -1,5 +1,9 @@
 import { pollLogger } from '../../utils/logBuffer.js';
 import { getAllProviderStatuses } from '../../utils/providerStatus.js';
+import { extractSupplierCode } from '../service/scheduler.js'; 
+import models from '../models/index.js';
+
+const { Zone } = models;
 
 export default async function logsRoutes(fastify, opts) {
   fastify.get('/logs/recent', async (request) => {
@@ -8,7 +12,12 @@ export default async function logsRoutes(fastify, opts) {
   });
 
   fastify.get('/providers/status', async () => {
-    return getAllProviderStatuses(); 
+    const zones = await Zone.findAll({ where: { status: 'actif' } });
+    const activeCodes = zones
+      .map(z => extractSupplierCode(z.endpoint))
+      .filter(Boolean);
+
+    return getAllProviderStatuses(activeCodes);
   });
 
 fastify.get('/logs/stream', (request, reply) => {

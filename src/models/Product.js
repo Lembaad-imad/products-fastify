@@ -33,7 +33,7 @@ export default (sequelize, DataTypes) => {
       },
       brandId: {
         type: DataTypes.INTEGER,
-        allowNull: true, // nullable depuis juin 2026 (produits sans marque)
+        allowNull: true, 
       },
       categoryId: {
         type: DataTypes.INTEGER,
@@ -45,7 +45,7 @@ export default (sequelize, DataTypes) => {
       },
       image: {
         type: DataTypes.STRING,
-        allowNull: true, // champ legacy
+        allowNull: true, 
       },
       imageMediaId: {
         type: DataTypes.INTEGER,
@@ -79,6 +79,10 @@ export default (sequelize, DataTypes) => {
         allowNull: true,
       },
       nanostoreId: {
+        type: DataTypes.INTEGER,
+        allowNull: true, 
+      },
+        zoneId: {
         type: DataTypes.INTEGER,
         allowNull: true, 
       },
@@ -118,6 +122,7 @@ export default (sequelize, DataTypes) => {
         { name: 'products_brand_idx', fields: ['brandId'] },
         { name: 'products_category_idx', fields: ['categoryId'] },
         { name: 'products_nanostore_idx', fields: ['nanostoreId'] },
+         { name: 'products_zone_idx', fields: ['zoneId'] },
       ],
     }
   );
@@ -125,20 +130,21 @@ export default (sequelize, DataTypes) => {
   Product.associate = (models) => {
     Product.hasMany(models.ProductVariant, {
       foreignKey: 'productId',
-    //   as: 'variants',
     });
     Product.hasMany(models.ProductTranslation, {
       foreignKey: 'productId',
-    //   as: 'translations',
     });
     Product.hasMany(models.SkuHistory, {
       foreignKey: 'productId',
-    //   as: 'skuHistory',
     });
       Product.belongsTo(models.User, {
   foreignKey: 'createdBy',
   as: 'creator',
 });
+   Product.belongsTo(models.Zone, {
+      foreignKey: 'zoneId',
+      as: 'zone',
+    });
   };
  
   return Product;

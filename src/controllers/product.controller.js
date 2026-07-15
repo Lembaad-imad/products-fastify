@@ -1,5 +1,5 @@
 import * as productService from "../service/model.service.js";
-
+import { enqueueBulkImport } from "../queues/productQueue.js";
 export default {
   async listProducts(request, reply) {
     const nanostoreId = request.query.nanostoreId ?? null;
@@ -15,37 +15,47 @@ export default {
     return reply.code(200).send(product);
   },
 
-async createProduct(request, reply) {
-  const { translations, initialVariant, ...productData } = request.body;
-
-  try {
-    const product = await productService.createProduct({
-      productData,
-      translations,
-      actor: {
-        createdBy: request.user.id,
-        createdByType: request.user?.type ?? "admin",
-        changeSource: "manual",
-      },
-    });
-    return reply.code(201).send(product);
-  } catch (err) {
-    return reply.code(400).send({ error: err.message });
-  }
-},
-
-  async createProductsBulk(request, reply) {
-    const items = request.body; // tableau de { productData, translations }
+  async createProduct(request, reply) {
+    const { translations, initialVariant, ...productData } = request.body;
 
     try {
-      const products = await productService.createProductsBulk(items, {
-        createdBy: request.user.id,
-        createdByType: request.user.type ?? "admin",
-        changeSource: "bulk_import",
+      const product = await productService.createProduct({
+        productData,
+        translations,
+        actor: {
+          createdBy: request.user.id,
+          createdByType: request.user?.type ?? "admin",
+          changeSource: "manual",
+        },
       });
-      return reply.code(201).send(products);
+      return reply.code(201).send(product);
     } catch (err) {
       return reply.code(400).send({ error: err.message });
     }
   },
+
+async createProductsBulk(request, reply) {
+  const items = request.body;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return reply.code(400).send({ error: "Le body doit être un tableau non vide" });
+  }
+
+  try {
+    const { batchId, totalItems, totalChunks } = await enqueueBulkImport(items, {
+      createdBy: request.user.id,
+      createdByType: request.user?.type ?? "admin",
+      changeSource: "bulk_import",
+    });
+
+    return reply.code(202).send({
+      message: "Import accepté, traitement en cours",
+      batchId,
+      totalItems,
+      totalChunks,
+    });
+  } catch (err) {
+    return reply.code(400).send({ error: err.message });
+  }
+},
 };

@@ -1,6 +1,9 @@
 import buildApp from "./src/app.js";
 import db from "./src/models/index.js";
 import './src/service/scheduler.js';
+import './src/queues/productWorker.js';
+import './src/queues/ingestionWorker.js';
+
 const fastify = buildApp();
 
 const start = async () => {

@@ -380,6 +380,467 @@ paths:
         '404':
           description: Product not found
 
+  # ---- Partenaires / Villes / Zones ----
+
+  /partenaires:
+    get:
+      summary: List all partners
+      operationId: listPartenaires
+      security: []
+      responses:
+        '200':
+          description: A list of partners
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Partenaire'
+
+    post:
+      summary: Create a new partner
+      operationId: createPartenaire
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPartenaire'
+      responses:
+        '201':
+          description: Partner created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Partenaire'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid token
+
+  /partenaires/{partenaireId}/villes:
+    get:
+      summary: List cities for a partner
+      operationId: listVilles
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A list of cities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ville'
+        '404':
+          description: Partner not found
+
+    post:
+      summary: Add a city to a partner
+      operationId: createVille
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewVille'
+      responses:
+        '201':
+          description: City created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ville'
+        '400':
+          description: Invalid input
+        '401':
+          description: Missing or invalid token
+        '404':
+          description: Partner not found
+
+  /partenaires/{partenaireId}/villes/{villeId}/zones:
+    get:
+      summary: List zones for a city
+      operationId: listZones
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: villeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A list of zones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Zone'
+        '404':
+          description: Partner or city not found
+
+    post:
+      summary: Add a zone to a city
+      operationId: createZone
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: villeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewZone'
+      responses:
+        '201':
+          description: Zone created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+        '400':
+          description: Invalid input
+        '401':
+          description: Missing or invalid token
+        '404':
+          description: Partner or city not found
+
+  /partenaires/{partenaireId}/villes/{villeId}/zones/{zoneId}/product:
+    get:
+      summary: List products available in a given zone
+      description: >
+        Matches the fourniseur/ville/zone routing used by partner
+        integrations: returns every product currently assigned to this
+        zone, which also belongs to the given city and partner.
+      operationId: listProductsByZone
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: villeId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: zoneId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: locale
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Locale'
+      responses:
+        '200':
+          description: A list of products for this zone
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '404':
+          description: Partner, city or zone not found
+  /partenaires/{partenaireId}/villes/{villeId}/zones/{zoneId}/toggle:
+    patch:
+      summary: Toggle a zone's active status
+      operationId: toggleZone
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: villeId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: zoneId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Zone toggled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+        '404':
+          description: Zone not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse' 
+                
+  /partenaires/{partenaireId}/villes/{villeId}:
+    get:
+      summary: Get a city by id
+      operationId: getVille
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: villeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: City found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ville'
+        '404':
+          description: Partner or city not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update a city
+      operationId: updateVille
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: villeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewVille'
+      responses:
+        '200':
+          description: City updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ville'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Partner or city not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a city
+      operationId: deleteVille
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: villeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: City deleted
+        '404':
+          description: Partner or city not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /partenaires/{partenaireId}/villes/{villeId}/toggle:
+    patch:
+      summary: Toggle a city's active status
+      operationId: toggleVille
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: villeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: City toggled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ville'
+        '404':
+          description: Partner or city not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'                
+
+  /partenaires/{partenaireId}:
+    get:
+      summary: Get a partner by id
+      operationId: getPartenaire
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Partner found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Partenaire'
+        '404':
+          description: Partner not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update a partner
+      operationId: updatePartenaire
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPartenaire'
+      responses:
+        '200':
+          description: Partner updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Partenaire'
+        '404':
+          description: Partner not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a partner
+      operationId: deletePartenaire
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Partner deleted
+        '404':
+          description: Partner not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /partenaires/{partenaireId}/toggle:
+    patch:
+      summary: Toggle a partner's active status
+      operationId: togglePartenaire
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Partner toggled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Partenaire'
+        '404':
+          description: Partner not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /ping:
     get:
       summary: Health check
@@ -452,6 +913,116 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /partenaires/{partenaireId}/villes/{villeId}/zones/{zoneId}:
+    get:
+      summary: Get a zone by id
+      operationId: getZone
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: villeId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: zoneId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Zone found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+        '404':
+          description: Partner, city or zone not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update a zone
+      operationId: updateZone
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: villeId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: zoneId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewZone'
+      responses:
+        '200':
+          description: Zone updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Partner, city or zone not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a zone
+      operationId: deleteZone
+      security: []
+      parameters:
+        - name: partenaireId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: villeId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: zoneId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Zone deleted
+        '404':
+          description: Partner, city or zone not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'              
 
 components:
   securitySchemes:
@@ -556,6 +1127,12 @@ components:
           description: >
             Null = global catalog product managed by Woliz, visible to all
             nanostores. Set = private product owned by one nanostore.
+        zoneId:
+          type: integer
+          nullable: true
+          description: >
+            Zone the product is sold in. Determines the product's city and
+            partner via the zone's own ville/partenaire relations.
         translations:
           type: array
           minItems: 1
@@ -596,6 +1173,9 @@ components:
           type: integer
         status:
           type: boolean
+        zoneId:
+          type: integer
+          nullable: true
 
     Product:
       type: object
@@ -653,6 +1233,9 @@ components:
         nanostoreId:
           type: integer
           nullable: true
+        zoneId:
+          type: integer
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -667,6 +1250,8 @@ components:
           $ref: '#/components/schemas/ProductVariant'
         creator:
           $ref: '#/components/schemas/User'
+        zone:
+          $ref: '#/components/schemas/Zone'
 
     # ---- Product translations ----
 
@@ -848,6 +1433,129 @@ components:
         changedAt:
           type: string
           format: date-time
+
+    # ---- Partenaires / Villes / Zones ----
+
+    NewPartenaire:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Woliz Distribution"
+        contact:
+          type: string
+          nullable: true
+          example: "Ahmed Benali"
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: "contact@woliz-distrib.ma"
+        phone:
+          type: string
+          nullable: true
+          example: "+212600000000"
+        status:
+          type: string
+          enum: [actif, inactif]
+          default: "actif"  
+
+    Partenaire:
+      allOf:
+        - $ref: '#/components/schemas/NewPartenaire'
+        - type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+            villes:
+              type: array
+              items:
+                $ref: '#/components/schemas/Ville'
+
+    NewVille:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Rabat"
+        status:
+         type: string
+         enum: [actif, inactif]
+         default: "actif"    
+
+    Ville:
+      allOf:
+        - $ref: '#/components/schemas/NewVille'
+        - type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            partenaireId:
+              type: integer
+              example: 1
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+            zones:
+              type: array
+              items:
+                $ref: '#/components/schemas/Zone'
+
+    NewZone:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Agdal"
+        endpoint:
+          type: string
+          nullable: true
+          description: >
+            Route/URL used to reach this zone's product feed, e.g.
+            api/:fourniseur/:ville/:zone/product
+          example: "api/woliz-distrib/rabat/agdal/product"
+        status:
+         type: string
+         enum: [actif, inactif]
+         default: "actif"  
+
+    Zone:
+      allOf:
+        - $ref: '#/components/schemas/NewZone'
+        - type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            villeId:
+              type: integer
+              example: 1
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
 
     # ---- Users / auth ----
 
